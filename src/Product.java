@@ -8,6 +8,7 @@
     private int categoryNum;
 
 
+
     public Product(String productName, int productPrice, String productDescription, int productStock ) {
         this.productName = productName;
         this.productPrice = productPrice;

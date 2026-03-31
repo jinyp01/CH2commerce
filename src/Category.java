@@ -3,6 +3,7 @@ import java.util.List;
 
 public class Category {
 
+
     private String categoryName;
     private int categoryNum;
     private List<Product> products = new ArrayList<>();

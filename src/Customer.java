@@ -48,6 +48,7 @@ public class Customer {
         }
     }
 
+
     public void buyShoppingCart() {
         int total = 0;
         for (Product p : customerCart) {

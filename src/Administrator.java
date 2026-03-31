@@ -1,6 +1,6 @@
 public class Administrator {
 
-    private String password;
+    private String  password;
 
     public Administrator() {
         this.password = "asdf";
