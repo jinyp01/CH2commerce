@@ -37,5 +37,10 @@ public class Category {
         return categoryNum;
     }
 
+    // 도전과제 Lv2
+    public void addProduct(Product product) {
+        this.products.add(product);
+    }
+
 
 }

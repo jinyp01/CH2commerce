@@ -40,7 +40,30 @@
          return productStock;
      }
 
+     public void setProductPrice(int productPrice) {
+         this.productPrice = productPrice;
+     }
+
+     public void setProductDescription(String productDescription) {
+         this.productDescription = productDescription;
+     }
+
+     public void setProductStock(int productStock) {
+         this.productStock = productStock;
+     }
+
      public void setCategoryNum(int categoryNum) {
          this.categoryNum = categoryNum;
      }
+
+
+
+
+
+
+
+
+
+
+
  }
