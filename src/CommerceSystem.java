@@ -1,26 +1,22 @@
+import org.w3c.dom.ls.LSOutput;
+
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class CommerceSystem {
 
-    private List<Product> products = new ArrayList<>();
     private List<Category> categories = new ArrayList<>();
-    private Map<Integer, Category> categoryList = new HashMap<>();
     // Category 클래스들을 담는 리스트를 추가
     // 이후 반복문에서 Category 리스트 -> Product 리스트 -> Product
-    // 순서대로 정보를 출력할 수 있다.
+    // 순서대로 정보를 출력하도록 한다
 
     private Customer customer = new Customer();
     private Administrator admin = new Administrator();
     private int menuNum;
-
-    public CommerceSystem(){}
-    public CommerceSystem(List<Product> products) {
-        this.products = products;
-    }
-
     // menuNum 을 전역변수로 설정하고
     // menuNum의 값에 따라 관리메뉴의 활성화를 경정하도록 하였다.
     // start() 에서는 defaultMenu() 와 cartMenu()를 menuNum에 따라 선택하는 기능만을 남겼다.
+
     public void start() {
         menuNum = -1;
         exampleProduct();
@@ -28,16 +24,24 @@ public class CommerceSystem {
 
         while (menuNum != 0) {
             if (menuNum == -1) defaultMenu();
-            else cartMenu();
+            else if (menuNum == -2) cartMenu();
+            else {
+                System.out.println("메뉴선택 과정 중 오류 발생!");
+                menuNum = 0;
+            }
         }
     }
 
+
     // 맨 처음에 활성화되는 메뉴
-    // 관리메뉴를 표시하지 않는다.
+    // 사용자의 장바구니에 상품이 없으므로 관리메뉴를 표시하지 않는다.
     public void defaultMenu() {
         Scanner scanner = new Scanner(System.in);
-        menuNum = -1;
         int managementNum = categories.size();
+        // managementNum 장바구니, 관리자 모드의 번호를 유동적으로 설정하기위한 변수
+        // managementNum+1 : 장바구니 관리
+        // managementNum+2 : 주문 취소
+        // managementNum+3 : 관리자 모드 접근
 
         while(menuNum != 0) {
             System.out.println("[ 실시간 커머스 플랫폼 메인 ]");
@@ -60,12 +64,14 @@ public class CommerceSystem {
             }
 
             // 관리자 모드로 접근하기위한 알고리즘
+            // 비밀번호( asdf ) 가 필요하며 3번이상 실패하거나 관리자모드에서 나올 시
+            // 사용자의 장바구니 상태를 확인하여 menuNum 업데이트하여
+            // 메뉴선택 과정으로 return
             if (menuNum == managementNum+3){
                 System.out.println("관리자 비밀번호를 입력해주세요");
                 int adminTry = 0;
                 while (adminTry<3){
                     if(scanner.next().equals(admin.getPassword())){
-                        // 관리자메뉴로 접근
                         adminMenu();
                         break;
                     } else {
@@ -85,55 +91,56 @@ public class CommerceSystem {
                 continue;
             }
 
-            while(menuNum != 0) {
+            // 카테고리는 menuNum 변수를 사용하여 고정하고,
+            // selectProducts 변수로 확인할 상품 필터를 결정,
+            // 0 입력시 메뉴선택화면으로 돌아감
+            int selectProducts = -1;
+            while(selectProducts != 0) {
                 Category category = null;
                 category = categories.get(menuNum-1);
-                Product p = null;
+                int filterPrice = 100; // 100만원을 기준으로 필터링
                 System.out.println();
-                System.out.printf("%s 카테고리\n", category.getCategoryName());
-                for(int i=0; i<category.getProducts().size(); i++){
-                    p = category.getProducts().get(i);
-                    System.out.printf("%-4s | %-20s | %,10d | %-30s\n", (i+1) + "." ,
-                            p.getProductName(),
-                            p.getProductPrice(),
-                            p.getProductDescription());
+                System.out.printf("[ %s 카테고리 ]\n", category.getCategoryName());
+                System.out.println("1. 전체 상품 보기");
+                System.out.printf("2. 가격대별 필터링 (%d만원 이하)\n", filterPrice);
+                System.out.printf("3. 가격대별 필터링 (%d만원 이상)\n", filterPrice);
+                System.out.println("0. 뒤로가기");
+
+                // 선택한 상품 목록에 대하여
+                // stream(), 람다식으로 List<Product> 를 새로 만들어서
+                // 상품 목록을 보여주는 메서드인 showProduct(List<Products>) 로 이동
+                selectProducts = scanner.nextInt();
+                switch(selectProducts){
+                    case 0:
+                        break;
+                    case 1:
+                        showProduct(category.getProducts());
+                        break;
+                    case 2:
+                        System.out.printf("[ %s만원 이하 상품 목록 ]\n", filterPrice);
+                        List<Product> downFilterProducts = category.getProducts().stream()
+                                .filter(product->product.getProductPrice()<(filterPrice*1000))
+                                .collect(Collectors.toList());
+                        showProduct(downFilterProducts);
+                        break;
+                    case 3:
+                        System.out.printf("[ %s만원 이상 상품 목록 ]\n", filterPrice);
+                        List<Product> upFilterProducts = category.getProducts().stream()
+                                .filter(product->product.getProductPrice()>(filterPrice*1000))
+                                .collect(Collectors.toList());
+                        showProduct(upFilterProducts);
+                        break;
+                    default:
+                        System.out.println("잘못된 입력입니다!");
                 }
-                System.out.printf("0. 뒤로가기\n");
-                int input = scanner.nextInt();
-                System.out.println();
-                if (input == 0){
-                    if ( customer.getCustomerCart().isEmpty()) {
-                        menuNum = -1; return;
-                    } else {
-                        menuNum = -2; return;
-                    }
-                }
-                else {
-                    p = category.getProducts().get(input-1);
-                    System.out.printf("선택한 상품 %s | %d원 | %s | 재고: %d개\n",
-                            p.getProductName(),
-                            p.getProductPrice(),
-                            p.getProductDescription(),
-                            p.getProductStock());
-                    System.out.println("위 상품을 장바구니에 추가하시겠습니까?");
-                    System.out.printf("1. 확인 %8s\n", "2. 취소");
-                    switch (scanner.nextInt()){
-                        case 1: if(p.getProductStock() != 0) {
-                            System.out.println(p.getProductName() + "가 장바구니에 추가되었습니다.");
-                            customer.addCustomerCart(p);
-                        } else {
-                            System.out.println("재고가 부족합니다!");
-                            break;
-                        }
-                        case 2: break;
-                        default:
-                            System.out.println("잘못된 입력입니다!");
-                    }
-                }
+            }
+            if ( customer.getCustomerCart().isEmpty()) {
+                menuNum = -1; return;
+            } else {
+                menuNum = -2; return;
             }
         }
     }
-
 
     public void adminMenu(){
 
@@ -146,6 +153,8 @@ public class CommerceSystem {
             System.out.println("3. 상품 삭제");
             System.out.println("4. 전체 상품 현황");
             System.out.println("0. 메인으로 돌아가기");
+
+            // selectAdminMenu 변수로 메뉴결정
             int selectAdminMenu = -1;
             try{
                 System.out.println("관리모드를 선택해주세요");
@@ -178,6 +187,9 @@ public class CommerceSystem {
 
                     System.out.print("상품명을 입력해주세요: ");
                     String new_productName = scanner.nextLine();
+
+                    // 같은 이름의 상품이 이미 존재하는지 검사를 진행하며,
+                    // 처음으로 돌아갑니다.
                     for(Product p : c.getProducts()){
                         if(p.getProductName().equals(new_productName)){
                             System.out.println("같은 이름의 상품이 이미 존재합니다!");
@@ -204,6 +216,9 @@ public class CommerceSystem {
                     + "재고: " + new_productStock + "개");
                     System.out.println("위 정보로 상품을 추가하시겠습니까?");
                     System.out.println("1. 확인      2. 취소");
+
+                    // 입력받은 상품정보들을 토대로 Category 클래스의 addProduct() 메서드로
+                    // 새로운 Product 를 카테고리에 추가합니다.
                     switch (scanner.nextInt()){
                         case 1:
                             c.addProduct(new Product(new_productName, new_productPrice
@@ -221,11 +236,17 @@ public class CommerceSystem {
                     System.out.print("수정할 상품명을 입력해주세요: ");
                     String EditProduct = scanner.nextLine();
                     Product currentProduct = null;
+
+                    // 전체 카테고리 반복문을 돌면서 입력받은 이름으로 수정할 상품을 탐색,
+                    // 끝까지 탐색되지 않아 currentProduct 가 null 이라면 break 합니다
+                    // outer 를 사용하면 지정한 장소까지 반복문을 바로 빠져나올 수 있다고 하여
+                    // 사용해보았습니다.
+                    outer:
                     for(Category category : categories){
                         for(Product product : category.getProducts()){
                             if (product.getProductName().equals(EditProduct)) {
                                 currentProduct = product;
-                                break;
+                                break outer;
                             }
                         }
                     }
@@ -233,6 +254,7 @@ public class CommerceSystem {
                         System.out.println("해당 상품이 존재하지 않습니다!");
                         break;
                     }
+
                     System.out.printf("현재 상품 정보: %s | %d원 | %s | 재고 : %d개",
                             currentProduct.getProductName(),
                             currentProduct.getProductPrice(),
@@ -248,6 +270,9 @@ public class CommerceSystem {
                         scanner.nextLine();
                         break;
                     }
+
+                    // 상품 수정 선택 후, 상품 가격, 상품 설명, 상품 재고에 대하여
+                    // 수정작업을 진행합니다.
                     switch (selectEditMenu) {
                         case 1:
                             System.out.println("현재 가격 : " + currentProduct.getProductPrice());
@@ -288,14 +313,17 @@ public class CommerceSystem {
                     }
                     break;
                 case 3:
+                    // 상품 삭제를 선택
                     System.out.print("삭제할 상품명을 입력해주세요 : ");
                     Product deleteProduct = null;
                     String deleteProductName = scanner.nextLine();
+
+                    outer:
                     for(Category category : categories){
                         for(Product product : category.getProducts()){
                             if (product.getProductName().equals(deleteProductName)) {
                                 deleteProduct = product;
-                                break;
+                                break outer;
                             }
                         }
                     }
@@ -311,6 +339,7 @@ public class CommerceSystem {
                         System.out.println("숫자를 입력해주세요!");
                         scanner.nextLine();
                     }
+                    // 상품 삭제 여부에 대해 다시한번 물어봅니다.
                     switch (selectdelete){
                         case 1:
                             customer.getCustomerCart().removeIf(p->p.getProductName().equals(deleteProductName));
@@ -318,6 +347,8 @@ public class CommerceSystem {
                                 List<Product> products = category.getProducts();
 
                                 for (int i = 0; i < products.size(); i++) {
+                                    // removeIf 를 사용하여 제거하면 반복문 도중 삭제 시
+                                    // 발생하는 오류 방지
                                     category.getProducts().
                                             removeIf(p->p.getProductName().equals(deleteProductName));
                                 }
@@ -402,8 +433,11 @@ public class CommerceSystem {
 
             if (menuNum == managementNum+1){
                 customer.showShoppingCart();
-                menuNum = -1;
-                return;
+                if ( customer.getCustomerCart().isEmpty()) {
+                    menuNum = -1; return;
+                } else {
+                    menuNum = -2; return;
+                }
             } else if (menuNum == managementNum+2) {
                 System.out.println("주문을 취소하시겠습니까?");
                 System.out.printf("%-4s %-14s\n",
@@ -414,12 +448,15 @@ public class CommerceSystem {
                         customer.cancelShoppingCart();
                         menuNum = -1;
                         return;
-                    case 2: continue;
+                    case 2:
+                        menuNum = -2;
+                        return;
                     default:
                         System.out.println("잘못된 입력입니다.");
                         continue;
                 }
             }
+
             if (menuNum == managementNum+3){
                 System.out.println("관리자 비밀번호를 입력해주세요");
                 int adminTry = 0;
@@ -440,46 +477,48 @@ public class CommerceSystem {
                 }
             }
 
-            while(menuNum != 0) {
+            int selectCategory = -1;
+            while(selectCategory != 0) {
                 Category category = null;
                 category = categories.get(menuNum-1);
-
+                int filterPrice = 100;
                 Product p = null;
-                System.out.println();
-                System.out.printf("%s 카테고리\n", category.getCategoryName());
-                for(int i=0; i<category.getProducts().size(); i++){
-                    p = category.getProducts().get(i);
-                    System.out.printf("%-4s | %-20s | %,10d | %-30s\n", (i+1) + "." ,
-                            p.getProductName(),
-                            p.getProductPrice(),
-                            p.getProductDescription());
+
+                System.out.printf("[ %s 카테고리 ]\n", category.getCategoryName());
+                System.out.println("1. 전체 상품 보기");
+                System.out.printf("2. 가격대별 필터링 (%d만원 이하)\n", filterPrice);
+                System.out.printf("3. 가격대별 필터링 (%d만원 이상)\n", filterPrice);
+                System.out.println("0. 뒤로가기");
+
+                selectCategory = scanner.nextInt();
+                switch(selectCategory){
+                    case 0:
+                        break;
+                    case 1:
+                        showProduct(category.getProducts());
+                        break;
+                    case 2:
+                        System.out.printf("[ %s만원 이하 상품 목록 ]\n", filterPrice);
+                        List<Product> downFilterProducts = category.getProducts().stream()
+                                .filter(product->product.getProductPrice()<(filterPrice*1000))
+                                .collect(Collectors.toList());
+                        showProduct(downFilterProducts);
+                        break;
+                    case 3:
+                        System.out.printf("[ %s만원 이상 상품 목록 ]\n", filterPrice);
+                        List<Product> upFilterProducts = category.getProducts().stream()
+                                .filter(product->product.getProductPrice()>(filterPrice*1000))
+                                .collect(Collectors.toList());
+                        showProduct(upFilterProducts);
+                        break;
+                    default:
+                        System.out.println("잘못된 입력입니다!");
                 }
-                System.out.printf("0. 뒤로가기\n");
-                int input = scanner.nextInt();
-                System.out.println();
-                if (input == 0){ menuNum = -1; break; }
-                else {
-                    p = category.getProducts().get(input-1);
-                    System.out.printf("선택한 상품 %s | %d원 | %s | 재고: %d개\n",
-                            p.getProductName(),
-                            p.getProductPrice(),
-                            p.getProductDescription(),
-                            p.getProductStock());
-                    System.out.println("위 상품을 장바구니에 추가하시겠습니까?");
-                    System.out.printf("1. 확인 %8s\n", "2. 취소");
-                    switch (scanner.nextInt()){
-                        case 1: if(p.getProductStock() != 0) {
-                            System.out.println(p.getProductName() + "가 장바구니에 추가되었습니다.");
-                            customer.addCustomerCart(p);
-                        } else {
-                            System.out.println("재고가 부족합니다!");
-                            break;
-                        }
-                        case 2: break;
-                        default:
-                            System.out.println("잘못된 입력입니다!");
-                    }
-                }
+            }
+            if ( customer.getCustomerCart().isEmpty()) {
+                menuNum = -1; return;
+            } else {
+                menuNum = -2; return;
             }
         }
     }
@@ -525,5 +564,54 @@ public class CommerceSystem {
         categories.add(category1);
         categories.add(category2);
         categories.add(category3);
+    }
+
+
+    // List<Product> 를 인자로 받아 내용물을 보여주는 메서드
+    // 선택된 Product p 에 대하여 Customer 클래스의 메서드를 사용하여
+    // 상품을 장바구니에 추가할 수 있습니다.
+    public void showProduct(List<Product> products) {
+        Scanner scanner = new Scanner(System.in);
+        Product p = null;
+        int selectProduct = -1;
+
+        while(true) {
+            for(int i=0; i<products.size(); i++){
+                p = products.get(i);
+                System.out.printf("%-4s | %-20s | %,10d | %-30s\n", (i+1) + "." ,
+                        p.getProductName(),
+                        p.getProductPrice(),
+                        p.getProductDescription());
+            }
+            System.out.printf("0. 뒤로가기\n");
+
+            selectProduct = scanner.nextInt();
+            System.out.println();
+            if (selectProduct == 0){
+                break;
+            }
+            else {
+                p = products.get(selectProduct-1);
+                System.out.printf("선택한 상품 %s | %d원 | %s | 재고: %d개\n",
+                        p.getProductName(),
+                        p.getProductPrice(),
+                        p.getProductDescription(),
+                        p.getProductStock());
+                System.out.println("위 상품을 장바구니에 추가하시겠습니까?");
+                System.out.printf("1. 확인 %8s\n", "2. 취소");
+                switch (scanner.nextInt()){
+                    case 1: if(p.getProductStock() != 0) {
+                        System.out.println(p.getProductName() + "가 장바구니에 추가되었습니다.");
+                        customer.addCustomerCart(p);
+                    } else {
+                        System.out.println("재고가 부족합니다!");
+                        break;
+                    }
+                    case 2: break;
+                    default:
+                        System.out.println("잘못된 입력입니다!");
+                }
+            }
+        }
     }
 }
